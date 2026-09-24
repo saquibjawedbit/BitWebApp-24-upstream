@@ -1,0 +1,65 @@
+# Render Blueprint: deploys the backend API and the frontend on Render's free plan.
+# Deploy: https://dashboard.render.com/blueprints -> New Blueprint Instance -> pick this repo.
+# If you rename a service, update the URLs below to match its new onrender.com address.
+
+services:
+  - type: web
+    name: bitwebapp-api-sj
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci --omit=dev
+    startCommand: npm run prod
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: MONGODB_URI
+        sync: false
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRY
+        value: 1d
+      - key: REFRESH_TOKEN_SECRET
+        generateValue: true
+      - key: REFRESH_TOKEN_EXPIRY
+        value: 10d
+      - key: CORS_ORIGIN
+        value: https://bitwebapp-sj.onrender.com
+      - key: CLIENT_URL
+        value: https://bitwebapp-sj.onrender.com
+      - key: AUTH_EMAIL
+        sync: false
+      - key: AUTH_PASSWORD
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_ALLOWED_DOMAINS
+        sync: false
+
+  - type: web
+    name: bitwebapp-sj
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      # Same-origin API calls are proxied to the backend so cookies keep working.
+      - type: rewrite
+        source: /api/*
+        destination: https://bitwebapp-api-sj.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://bitwebapp-api-sj.onrender.com
+      - key: VITE_CORS
+        value: https://bitwebapp-api-sj.onrender.com
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
